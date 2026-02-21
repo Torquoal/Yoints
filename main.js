@@ -6,8 +6,7 @@
    * - Context: AudioContext + createGain() for volume; gain.gain.setTargetAtTime() mutes when sprite is still.
    * - File playback: Audio element + createMediaElementSource() into the graph; element.playbackRate is set each frame for speed.
    * - Tone (dark or bright): createBiquadFilter(), type 'lowpass'; filter.frequency.setTargetAtTime() from FILTER_MIN_HZ to FILTER_MAX_HZ by position.
-   * - Fallback (no file): createOscillator() playing a MELODY array; oscillator.frequency and gain for the same speed/filter behaviour.
-   * - Unlock: tryStartAudio() calls context.resume() and element.play() on click/mousemove cos of browser autoplay limits.
+   * - Unlock: tryStartAudio() calls context.resume() and element.play() on click/mousemove (browser autoplay policy).
    */
 
   const arena = document.getElementById('arena');
@@ -34,13 +33,7 @@
   let audioContext = null;
   let gainNode = null;
   let filterNode = null;
-  let oscillator = null;
   let audioElement = null;
-  let melodyIndex = 0;
-  let melodyTime = 0;
-
-  const MELODY = [261.63, 329.63, 392, 523.25, 392, 329.63, 261.63, 196];
-  const MELODY_STEP_DURATION = 0.25;
 
   var updateArenaRect = function () {
     arenaRect = arena.getBoundingClientRect();
@@ -59,32 +52,23 @@
   };
 
   function initAudio() {
-    if (audioContext) return;
+    if (audioContext || !AUDIO_FILE) return;
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     gainNode = audioContext.createGain();
     gainNode.gain.value = 0;
     gainNode.connect(audioContext.destination);
 
-    filterNode = audioContext.createBiquadFilter();
+    filterNode = audioContext.createBiquadFilter(); // does the dark and bright low pass filters
     filterNode.type = 'lowpass';
     filterNode.frequency.value = (FILTER_MIN_HZ + FILTER_MAX_HZ) / 2;
     filterNode.Q.value = 0.7;
     filterNode.connect(gainNode);
 
-    if (AUDIO_FILE) {
-      audioElement = new Audio(AUDIO_FILE);
-      audioElement.loop = true;
-      var source = audioContext.createMediaElementSource(audioElement);
-      source.connect(filterNode);
-      audioReady = true;
-    } else {
-      oscillator = audioContext.createOscillator();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = MELODY[0];
-      oscillator.connect(filterNode);
-      oscillator.start(0);
-      audioReady = true;
-    }
+    audioElement = new Audio(AUDIO_FILE);
+    audioElement.loop = true;
+    var source = audioContext.createMediaElementSource(audioElement);
+    source.connect(filterNode);
+    audioReady = true;
   }
 
   const resumeAudio = () => {
@@ -117,26 +101,29 @@
     mouse.y = null;
   });
 
-  function tick(dt) {
-    var minX = PADDING + SPRITE_R;
-    var minY = PADDING + SPRITE_R;
-    var maxX = arenaRect.width - PADDING - SPRITE_R;
-    var maxY = arenaRect.height - PADDING - SPRITE_R;
+  function frameTick(dt) {
+    var leftBound = PADDING + SPRITE_R;
+    var topBound = PADDING + SPRITE_R;
+    var rightBound = arenaRect.width - PADDING - SPRITE_R;
+    var bottomBound = arenaRect.height - PADDING - SPRITE_R;
 
     if (mouse.x != null && mouse.y != null && arenaRect.width && arenaRect.height) {
-      var cx = pos.x, cy = pos.y;
-      var dx = cx - mouse.x, dy = cy - mouse.y;
-      var dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+      var spriteCenterX = pos.x;
+      var spriteCenterY = pos.y;
+      var fromMouseToSpriteX = spriteCenterX - mouse.x;
+      var fromMouseToSpriteY = spriteCenterY - mouse.y;
+      var distanceToMouse = Math.sqrt(fromMouseToSpriteX * fromMouseToSpriteX + fromMouseToSpriteY * fromMouseToSpriteY) || 0.001;
 
-      var speed = dist < MIN_DISTANCE ? 0 : Math.min(MAX_SPEED, (MAX_SPEED * Math.pow(MIN_DISTANCE, SPEED_CURVE)) / Math.pow(dist, SPEED_CURVE));
-      var ux = dx / dist, uy = dy / dist;
-      var newX = pos.x + ux * speed * dt;
-      var newY = pos.y + uy * speed * dt;
+      var escapeSpeed = distanceToMouse < MIN_DISTANCE ? 0 : Math.min(MAX_SPEED, (MAX_SPEED * Math.pow(MIN_DISTANCE, SPEED_CURVE)) / Math.pow(distanceToMouse, SPEED_CURVE));
+      var directionAwayFromMouseX = fromMouseToSpriteX / distanceToMouse;
+      var directionAwayFromMouseY = fromMouseToSpriteY / distanceToMouse;
+      var nextPosX = pos.x + directionAwayFromMouseX * escapeSpeed * dt;
+      var nextPosY = pos.y + directionAwayFromMouseY * escapeSpeed * dt;
 
-      velocity.x = (newX - pos.x) / dt;
-      velocity.y = (newY - pos.y) / dt;
-      pos.x = Math.max(minX, Math.min(maxX, newX));
-      pos.y = Math.max(minY, Math.min(maxY, newY));
+      velocity.x = (nextPosX - pos.x) / dt;
+      velocity.y = (nextPosY - pos.y) / dt;
+      pos.x = Math.max(leftBound, Math.min(rightBound, nextPosX));
+      pos.y = Math.max(topBound, Math.min(bottomBound, nextPosY));
     } else {
       velocity.x *= 0.9;
       velocity.y *= 0.9;
@@ -144,8 +131,8 @@
 
     setSpritePosition(pos.x, pos.y);
 
-    var speedMag = Math.hypot(velocity.x, velocity.y);
-    var isMoving = audioReady && speedMag > MOVING_THRESHOLD;
+    var velocityMagnitude = Math.hypot(velocity.x, velocity.y);
+    var isMoving = audioReady && velocityMagnitude > MOVING_THRESHOLD;
 
     if (audioReady) {
       resumeAudio();
@@ -153,26 +140,18 @@
     }
 
     if (isMoving) {
-      var rangeX = maxX - minX, rangeY = maxY - minY;
-      var normX = Math.max(0, Math.min(1, rangeX > 0 ? (pos.x - minX) / rangeX : 0)); /* left=0, right=1 → tone */
-      var normY = Math.max(0, Math.min(1, rangeY > 0 ? 1 - (pos.y - minY) / rangeY : 0)); /* bottom=0, top=1 → speed */
+      var arenaWidth = rightBound - leftBound;
+      var arenaHeight = bottomBound - topBound;
+      var horizontalZeroToOne = Math.max(0, Math.min(1, arenaWidth > 0 ? (pos.x - leftBound) / arenaWidth : 0)); /* left=0, right=1 → tone */
+      var verticalZeroToOne = Math.max(0, Math.min(1, arenaHeight > 0 ? 1 - (pos.y - topBound) / arenaHeight : 0)); /* bottom=0, top=1 → speed */
 
-      var speedFactor = PLAYBACK_RATE_MIN + normY * (PLAYBACK_RATE_MAX - PLAYBACK_RATE_MIN);
+      var playbackSpeedMultiplier = PLAYBACK_RATE_MIN + verticalZeroToOne * (PLAYBACK_RATE_MAX - PLAYBACK_RATE_MIN);
       filterNode.frequency.setTargetAtTime(
-        FILTER_MIN_HZ + normX * (FILTER_MAX_HZ - FILTER_MIN_HZ),
+        FILTER_MIN_HZ + horizontalZeroToOne * (FILTER_MAX_HZ - FILTER_MIN_HZ),
         audioContext.currentTime, 0.04
       );
 
-      if (audioElement) {
-        audioElement.playbackRate = Math.max(0.25, Math.min(4, speedFactor));
-      } else {
-        melodyTime += dt * speedFactor;
-        while (melodyTime >= MELODY_STEP_DURATION) {
-          melodyTime -= MELODY_STEP_DURATION;
-          melodyIndex = (melodyIndex + 1) % MELODY.length;
-        }
-        oscillator.frequency.setTargetAtTime(MELODY[melodyIndex], audioContext.currentTime, 0.02);
-      }
+      audioElement.playbackRate = Math.max(0.25, Math.min(4, playbackSpeedMultiplier));
     }
   }
 
@@ -183,7 +162,7 @@
   var loop = function loop(now) {
     var dt = Math.min((now - last) / 1000, 0.1);
     last = now;
-    tick(dt);
+    frameTick(dt);
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
