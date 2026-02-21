@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yoints</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <p id="click-hint">Click to start</p>
+  <div class="arena-wrapper">
+    <div class="arena-with-side">
+      <div id="arena-labels-left" aria-hidden="true">
+        <span class="arrow">↑</span>
+        <span class="label-text">speed</span>
+        <span class="arrow">↓</span>
+      </div>
+      <div id="arena">
+        <div id="sprite" aria-hidden="true">
+          <img src="sprite.jpg" alt="" onerror="this.style.display='none'" />
+        </div>
+      </div>
+    </div>
+    <div id="arena-labels-bottom" aria-hidden="true">
+      <span class="arrow">←</span>
+      <span class="label-text">pitch</span>
+      <span class="arrow">→</span>
+    </div>
+  </div>
+  <p id="hint"></p>
+  <script src="main.js"></script>
+</body>
+</html>

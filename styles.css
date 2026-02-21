@@ -1,0 +1,120 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e url('background.png') center / cover no-repeat;
+  color: #eee;
+  font-family: system-ui, sans-serif;
+}
+
+/* Sprite shape: change border-radius or use clip-path (see examples below) */
+#sprite {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #e94560;
+  border-radius: 0%; /* circle (default). Try: 0 = square, 12px = rounded square, 50% = circle */
+  box-shadow: 0 0 20px rgb(255, 255, 255);
+  pointer-events: none;
+  transition: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arena-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.arena-with-side {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+#arena-labels-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 2rem;
+  opacity: 0.9;
+  color: #eee;
+}
+
+#arena-labels-left .arrow {
+  font-size: 2.75rem;
+  line-height: 1;
+}
+
+#arena-labels-left .label-text {
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+#arena-labels-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 2rem;
+  opacity: 0.9;
+  color: #eee;
+}
+
+#arena-labels-bottom .arrow {
+  font-size: 2.75rem;
+}
+
+#arena-labels-bottom .label-text {
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+#arena {
+  position: relative;
+  width: min(98vw, 1600px);
+  height: min(92vh, 900px);
+  background: rgba(117, 117, 117, 0.04);
+  border-radius: 72px;
+  overflow: hidden;
+}
+
+
+#sprite img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+
+#sprite img[src=""],
+#sprite img:not([src]) {
+  display: none;
+}
+
+#click-hint {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+#hint {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
