@@ -15,9 +15,9 @@
   const AUDIO_FILE = 'f1theme.mp3';
   const PADDING = 40;
   const SPRITE_R = 60; // half of sprite CSS size (120px)
-  const MAX_SPEED = 20000;
+  const MAX_SPEED = 24000;
   const MIN_DISTANCE = 8;
-  const SPEED_CURVE = 1.0; // > 1 = harder to catch when mouse is close
+  const SPEED_CURVE = 1; // > 1 = harder to catch when mouse is close
   const MOVING_THRESHOLD = 5;
   const AUDIO_GAIN = 0.2;
   const FILTER_MIN_HZ = 200;  /* bottom-left = dark */

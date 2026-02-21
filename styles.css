@@ -19,6 +19,8 @@ body {
   background: #1a1a2e url('background.png') center / cover no-repeat;
   color: #eee;
   font-family: 'F1', system-ui, sans-serif;
+  /* Custom cursor: image must be 32×32px or smaller on Windows (128×128 max elsewhere). Resize cursor.png if it doesn’t show. */
+  cursor: url('cursor.png') 0 0, crosshair;
 }
 
 #sprite {
